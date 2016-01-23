@@ -8,22 +8,14 @@ import (
 	"golang.org/x/net/context"
 )
 
-func state1(ctx context.Context) machine.StateFnPipeout {
-	fn := machine.MakeStateFn(func(pipe machine.StateFnPipein) {
-		fmt.Println("state1")
-		pipe.Next(state2)
-	})
-
-	fmt.Println("Started")
-
-	return fn
+func state1(ctx context.Context, pipe machine.StateFnPipein) {
+	fmt.Println("state1")
+	pipe.Next(state2)
 }
 
-func state2(ctx context.Context) machine.StateFnPipeout {
-	return machine.MakeStateFn(func(pipe machine.StateFnPipein) {
-		fmt.Println("state2")
-		pipe.Close()
-	})
+func state2(ctx context.Context, pipe machine.StateFnPipein) {
+	fmt.Println("state2")
+	pipe.Close()
 }
 
 func TestSimpleState(t *testing.T) {
