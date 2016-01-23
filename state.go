@@ -2,13 +2,24 @@ package machine
 
 import "golang.org/x/net/context"
 
+type StateFnPipeout <-chan StateFn
+type StateFnPipein chan<- StateFn
+
+func (p StateFnPipein) Next(fn StateFn) {
+	p <- fn
+}
+
+func (p StateFnPipein) Close() {
+	close(p)
+}
+
 //StateFn every state in the application must have this signiture.
 //every state will accept context.Context so they can maintain the state on the
 //running file.
 //rememeber, error should not leakout. since error in go treated as type
 //it can be used to go into different state. So technically, you do not need
 //to return an error.
-type StateFn func(context.Context) <-chan StateFn
+type StateFn func(context.Context) StateFnPipeout
 
 //Run runs the state by providing the start state.
 //every state machine must be started by a start state.
@@ -40,7 +51,7 @@ func Run(ctx context.Context, start StateFn) <-chan struct{} {
 
 		//this is a signal value which will be use to notify that the entore state
 		//machine is completed.
-		close(done)
+		defer close(done)
 	}()
 
 	return done
@@ -52,7 +63,7 @@ func Run(ctx context.Context, start StateFn) <-chan struct{} {
 //   - push new state
 //			      or
 //	 - close the channel.
-func MakeStateFn(fn func(chan StateFn)) <-chan StateFn {
+func MakeStateFn(fn func(StateFnPipein)) StateFnPipeout {
 	result := make(chan StateFn)
 	fn(result)
 	return result
