@@ -2,59 +2,44 @@ package machine
 
 import "golang.org/x/net/context"
 
-//StateFnResult is a type wraps <-chan StateFn. the main reason of this type is
-//to hides and simplified the coding.
-type StateFnResult <-chan StateFn
-
 //StateFn every state in the application must have this signiture.
 //every state will accept context.Context so they can maintain the state on the
 //running file.
-type StateFn func(context.Context) StateFnResult
-
-//NextStateFn is a type which hides the chan StateFn.
-type NextStateFn chan StateFn
-
-//Next is a method to push the next state to channel. in your code, each state
-//might endup going into different state.
-func (n NextStateFn) Next(next StateFn) {
-	n <- next
-}
-
-//Close will close this channel and let everyone that it won't sending any more
-//statefn.
-func (n NextStateFn) Close() {
-	close(n)
-}
-
-//Done is a simple type which returns from Rum function.
-//you can call wait on this object and it wait until the state machine compeletes
-type Done <-chan struct{}
-
-//Wait a very thin wrapper around returning type which blocks a go routine until
-//it gets closed.
-func (d *Done) Wait() {
-	<-(*d)
-}
+//rememeber, error should not leakout. since error in go treated as type
+//it can be used to go into different state. So technically, you do not need
+//to return an error.
+type StateFn func(context.Context) <-chan StateFn
 
 //Run runs the state by providing the start state.
 //every state machine must be started by a start state.
-func Run(ctx context.Context, start StateFn) Done {
+func Run(ctx context.Context, start StateFn) <-chan struct{} {
 	done := make(chan struct{})
 
+	//if context passes to run is not initialized, then we assing the background one.
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
+	//runs the state machine in a gorotine.
 	go func() {
+		//it start off by calling start state to kick off the state machine
 		state, ok := <-start(ctx)
 
+		//if it's ok, then it goes into infinite of calling the next state.
+		//context is being use here to first share values between each state and
+		//also more importantly if context is timeout or cancel, it stop the
+		//forloop process.
 		for ok {
 			select {
+			//we are waiting for state to return a new stat via state channel.
 			case state, ok = <-state(ctx):
+			//or context gets canceled or timeout.
 			case _, ok = <-ctx.Done():
 			}
 		}
 
+		//this is a signal value which will be use to notify that the entore state
+		//machine is completed.
 		close(done)
 	}()
 
@@ -63,8 +48,12 @@ func Run(ctx context.Context, start StateFn) Done {
 
 //MakeStateFn a utility function to remove a bolierplate of creating
 //result channel.
-func MakeStateFn(fn func(NextStateFn)) StateFnResult {
-	result := make(NextStateFn)
+//you can either
+//   - push new state
+//			      or
+//	 - close the channel.
+func MakeStateFn(fn func(chan StateFn)) <-chan StateFn {
+	result := make(chan StateFn)
 	fn(result)
-	return StateFnResult(result)
+	return result
 }
