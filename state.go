@@ -10,7 +10,7 @@ type Joiner interface {
 
 type Transitioner interface {
 	Next(State)
-	Fork(...State) Joiner
+	Fork(context.Context, ...State) Joiner
 	Done()
 }
 

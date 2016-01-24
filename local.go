@@ -1,11 +1,23 @@
 package machine
 
-import "golang.org/x/net/context"
+import (
+	"sync"
+	"time"
+
+	"golang.org/x/net/context"
+)
 
 type localDone chan struct{}
 
 func (l localDone) Wait(timeout int64) {
-	<-l
+	if timeout > 0 {
+		select {
+		case <-l:
+		case <-time.After(time.Duration(timeout)):
+		}
+	} else {
+		<-l
+	}
 }
 
 type localStateTransition chan State
@@ -14,8 +26,29 @@ func (ls localStateTransition) Next(state State) {
 	ls <- state
 }
 
-func (ls localStateTransition) Fork(states ...State) Joiner {
-	return nil
+func (ls localStateTransition) Fork(ctx context.Context, states ...State) Joiner {
+	var wg sync.WaitGroup
+	wg.Add(len(states))
+
+	var done localDone
+	done = make(chan struct{})
+
+	for _, state := range states {
+		go func(initialState State) {
+			defer wg.Done()
+
+			NewLocalMachine().
+				Run(ctx, initialState).
+				Wait(0)
+		}(state)
+	}
+
+	go func() {
+		defer close(done)
+		wg.Wait()
+	}()
+
+	return done
 }
 
 func (ls localStateTransition) Done() {
