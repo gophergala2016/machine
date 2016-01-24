@@ -32,9 +32,17 @@ func TestLocalStateRun(t *testing.T) {
 }
 
 func state4(ctx context.Context, transitioner machine.Transitioner) {
+	fmt.Println("state 4")
 
+	transitioner.Fork(ctx, state1, state2, state3).Wait(0)
+
+	transitioner.Done()
 }
 
 func TestLocalStateFork(t *testing.T) {
+	localMachine := machine.NewLocalMachine()
 
+	ctx := context.Background()
+
+	localMachine.Run(ctx, state4)
 }
