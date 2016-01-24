@@ -15,6 +15,11 @@ func state1(ctx context.Context, pipe machine.StateFnPipein) {
 
 func state2(ctx context.Context, pipe machine.StateFnPipein) {
 	fmt.Println("state2")
+	pipe.Next(state3)
+}
+
+func state3(ctx context.Context, pipe machine.StateFnPipein) {
+	fmt.Println("state3")
 	pipe.Close()
 }
 
