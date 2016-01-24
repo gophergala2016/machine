@@ -11,6 +11,7 @@ type Joiner interface {
 type Transitioner interface {
 	Next(State)
 	Fork(...State) Joiner
+	Done()
 }
 
 type Machine interface {
