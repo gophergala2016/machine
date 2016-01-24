@@ -24,7 +24,7 @@ type StateFn func(context.Context, StateFnPipein)
 //every state machine must be started by a start state.
 func Run(ctx context.Context, state StateFn) <-chan struct{} {
 	done := make(chan struct{})
-	pipe := make(chan StateFn)
+	pipe := make(chan StateFn, 1)
 
 	//if context passes to run is not initialized, then we assing the background one.
 	if ctx == nil {
