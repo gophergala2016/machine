@@ -54,3 +54,12 @@ by just having these 4 things, we can easily build any state machines.
 `Machine` is the interface for the state machine engine. At the moment I have provided a simple local state machine. but consider this, you can extend it and make it as a distributed state machine.
 
 `Run` starts the engine by providing `context.Context` and first initial `State`. `context.Context` is being used as a way to share context with all states inside that particular state machine and ability to cancel and stop state machine in the middle of process.
+
+## Next
+
+- implement a distributed version of state machine using this interface
+- implement more examples
+
+## Continue
+
+The project will be continued at github.com/alinz/machine
