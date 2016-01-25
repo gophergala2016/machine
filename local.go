@@ -82,6 +82,8 @@ func (lm *localMachine) Run(ctx context.Context, state State) Joiner {
 	return lm.done
 }
 
+//NewLocalMachine is a simple implemenation of state machine which uses go
+//channel
 func NewLocalMachine() Machine {
 	return &localMachine{
 		done:         make(chan struct{}),
